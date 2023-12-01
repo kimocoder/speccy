@@ -64,15 +64,13 @@ class Speccy(object):
     def __init__(self, ifaces):
         self.color_map = self.gen_pallete()
         self.scanners = []
-        idx = 0
-        for iface in ifaces:
+        for idx, iface in enumerate(ifaces):
             scanner = Scanner(iface, idx=idx)
             scanner.mode_chanscan()
-            fn = '%s/spectral_scan0' % scanner.get_debugfs_dir()
+            fn = f'{scanner.get_debugfs_dir()}/spectral_scan0'
             reader = SpectrumFileReader(fn)
             scanner.file_reader = reader
             self.scanners.append(scanner)
-            idx += 1
         self.dev_idx = 0  # id of currently selected device
         if not os.path.exists("./spectral_data"):
             os.mkdir("./spectral_data")
@@ -225,7 +223,7 @@ class Speccy(object):
             cr.line_to(ex, ey)
             cr.stroke()
 
-            if freq != self.freq_min and freq != self.freq_max:
+            if freq not in [self.freq_min, self.freq_max]:
                 self.draw_centered_text(cr, "%d" % freq, ex, ey + 30)
 
         for power in range(int(self.power_min), int(self.power_max), 10):
@@ -235,7 +233,7 @@ class Speccy(object):
             cr.line_to(ex, ey)
             cr.stroke()
 
-            if power != self.power_min and power != self.power_max:
+            if power not in [self.power_min, self.power_max]:
                 self.draw_centered_text(cr, "%d dBm" % power, sx + 30, ey)
 
         cr.set_dash([])

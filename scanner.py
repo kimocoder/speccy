@@ -16,9 +16,8 @@ class Scanner(object):
     run = True
 
     def dev_to_phy(self, dev):
-        f = open('/sys/class/net/%s/phy80211/name' % dev)
-        phy = f.read().strip()
-        f.close()
+        with open(f'/sys/class/net/{dev}/phy80211/name') as f:
+            phy = f.read().strip()
         return phy
 
     def freq_to_chan(self, freq):
@@ -45,12 +44,12 @@ class Scanner(object):
                 self.cmd_trigger()
 
             if self.mode.value == 1:  # only in 'chanscan' mode
-                cmd = 'iw dev %s scan' % self.interface
+                cmd = f'iw dev {self.interface} scan'
                 self.lock.acquire()
                 if self.freqlist:
-                    cmd = '%s freq %s' % (cmd, ' '.join(self.freqlist))
+                    cmd = f"{cmd} freq {' '.join(self.freqlist)}"
                 self.lock.release()
-                os.system('%s >/dev/null 2>/dev/null' % cmd)
+                os.system(f'{cmd} >/dev/null 2>/dev/null')
             time.sleep(.01)
 
     def __init__(self, interface, idx=0):
@@ -62,13 +61,15 @@ class Scanner(object):
         self.monitor_added = False
         self.debugfs_dir = self._find_debugfs_dir()
         if not self.debugfs_dir:
-            raise Exception, \
-                  'Unable to access spectral_scan_ctl file for interface %s' % interface
+            raise (
+                Exception,
+                f'Unable to access spectral_scan_ctl file for interface {interface}',
+            )
 
         self.is_ath10k = self.debugfs_dir.endswith("ath10k")
-        self.ctl_file = '%s/spectral_scan_ctl' % self.debugfs_dir
-        self.sample_count_file = '%s/spectral_count' % self.debugfs_dir
-        self.short_repeat_file = '%s/spectral_short_repeat' % self.debugfs_dir
+        self.ctl_file = f'{self.debugfs_dir}/spectral_scan_ctl'
+        self.sample_count_file = f'{self.debugfs_dir}/spectral_count'
+        self.short_repeat_file = f'{self.debugfs_dir}/spectral_short_repeat'
         self.cur_chan = 6
         self.sample_count = 8
         self.mode = Value('i', -1)  # -1 = undef, 1 = 'chanscan', 2 = 'background scan', 3 = 'noninvasive bg scan'
@@ -164,31 +165,26 @@ class Scanner(object):
         self.cmd_set_samplecount(self.sample_count)
 
     def cmd_trigger(self):
-        f = open(self.ctl_file, 'w')
-        f.write("trigger")
-        f.close()
+        with open(self.ctl_file, 'w') as f:
+            f.write("trigger")
 
     def cmd_background(self):
-        f = open(self.ctl_file, 'w')
-        f.write("background")
-        if self.is_ath10k:
-            f.write("trigger")
-        f.close()
+        with open(self.ctl_file, 'w') as f:
+            f.write("background")
+            if self.is_ath10k:
+                f.write("trigger")
 
     def cmd_manual(self):
-        f = open(self.ctl_file, 'w')
-        f.write("manual")
-        f.close()
+        with open(self.ctl_file, 'w') as f:
+            f.write("manual")
 
     def cmd_chanscan(self):
-        f = open(self.ctl_file, 'w')
-        f.write("chanscan")
-        f.close()
+        with open(self.ctl_file, 'w') as f:
+            f.write("chanscan")
 
     def cmd_disable(self):
-        f = open(self.ctl_file, 'w')
-        f.write("disable")
-        f.close()
+        with open(self.ctl_file, 'w') as f:
+            f.write("disable")
 
     def cmd_set_samplecount(self, count):
         print "set sample count to %d" % count
@@ -197,9 +193,8 @@ class Scanner(object):
         f.close()
 
     def set_short_repeat(self, short_repeat):
-        f = open(self.short_repeat_file, 'w')
-        f.write("%s" % short_repeat)
-        f.close()
+        with open(self.short_repeat_file, 'w') as f:
+            f.write(f"{short_repeat}")
 
     def cmd_toggle_short_repeat(self):
         f = open(self.short_repeat_file, 'r')
@@ -232,20 +227,13 @@ class Scanner(object):
 
     def fix_ht40_mode(self):
         if self.channel_mode != "HT20":
-            # see https://wireless.wiki.kernel.org/en/developers/regulatory/processing_rules#mhz_channels1
-            if self.cur_chan < 8:
-                self.channel_mode = "HT40+"
-            else:
-                self.channel_mode = "HT40-"
+            self.channel_mode = "HT40+" if self.cur_chan < 8 else "HT40-"
 
     def cmd_toggle_HTMode(self):
-        if self.channel_mode == "HT40+" or self.channel_mode == "HT40-":
-             self.channel_mode = "HT20"
+        if self.channel_mode in ["HT40+", "HT40-"]:
+            self.channel_mode = "HT20"
         else: # see https://wireless.wiki.kernel.org/en/developers/regulatory/processing_rules#mhz_channels1
-            if self.cur_chan < 8:
-                self.channel_mode = "HT40+"
-            else:
-                self.channel_mode = "HT40-"
+            self.channel_mode = "HT40+" if self.cur_chan < 8 else "HT40-"
         self.cmd_setchannel()
         self.cmd_trigger()
 
@@ -259,8 +247,8 @@ class Scanner(object):
 
     def dev_del_monitor(self):
         if self.monitor_added:
-            os.system("ip link set %s down" % self.monitor_name)
-            os.system("iw dev %s del" % self.monitor_name)
+            os.system(f"ip link set {self.monitor_name} down")
+            os.system(f"iw dev {self.monitor_name} del")
             self.monitor_added = False
 
     def start(self):

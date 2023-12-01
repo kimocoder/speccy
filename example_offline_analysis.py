@@ -21,7 +21,7 @@ def process(fn):
 def main():
     for fn in os.listdir("./spectral_data"):
         if fn.endswith(".bin"):
-            process("./spectral_data/"+fn)
+            process(f"./spectral_data/{fn}")
 
 if __name__ == '__main__':
     main()

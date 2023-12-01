@@ -9,7 +9,7 @@ class AthBenchmark(object):
 
     def __init__(self, iface):
         self.scanner = Scanner(iface)
-        fn = '%s/spectral_scan0' % self.scanner.get_debugfs_dir()
+        fn = f'{self.scanner.get_debugfs_dir()}/spectral_scan0'
         self.file_reader = SpectrumFileReader(fn)
         self.interface = iface
 
